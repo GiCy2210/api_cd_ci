@@ -1,49 +1,75 @@
-const request = require('supertest');
-const { app, server } = require('./server'); 
+const express = require('express');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const path = require('path');
 
-let registroId;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-afterAll(() => {
-  server.close(done);
+app.use(express.json());
+
+let registros = [];
+
+// Carrega o api.yml garantindo o caminho correto na pasta raiz
+const caminhoSwagger = path.join(__dirname, 'api.yml');
+const swaggerDocument = YAML.load(caminhoSwagger);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.post('/api/recurso', (req, res) => {
+  const { titulo, status } = req.body;
+  
+  if (!titulo) {
+    return res.status(400).json({ erro: 'O campo título é obrigatório.' });
+  }
+
+  const novoRegistro = { id: Date.now(), titulo, status };
+  registros.push(novoRegistro);
+  
+  res.status(201).json(novoRegistro);
 });
 
-describe('Testes da API - CI e CD', () => {
-  test('POST /api/recurso - Criar um novo registro', async () => {
-    const response = await request(app)
-      .post('/api/recurso')
-      .send({ titulo: 'Novo Registro', status: 'ativo' });
-    
-    expect(response.status).toBe(201);
-    expect(response.body).toHaveProperty('id');
-    registroId = response.body.id; 
-  });
-
-  test('GET /api/recurso - Listar todos os registros', async () => {
-    const response = await request(app).get('/api/recurso');
-    
-    expect(response.status).toBe(200);
-    expect(Array.isArray(response.body)).toBe(true);
-  });
-
-  test('GET /api/recurso/:id - Buscar um registro específico pelo ID', async () => {
-    const response = await request(app).get(`/api/recurso/${registroId}`);
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('id', registroId);
-  });
-
-  test('PUT /api/recurso/:id - Atualizar um registro existente', async () => {
-    const response = await request(app)
-      .put(`/api/recurso/${registroId}`)
-      .send({ titulo: 'Registro Atualizado', status: 'inativo' });
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty('titulo', 'Registro Atualizado');
-  });
-
-  test('DELETE /api/recurso/:id - Deletar um registro existente', async () => {
-    const response = await request(app).delete(`/api/recurso/${registroId}`);
-    
-    expect(response.status).toBe(204);
-  });
+app.get('/api/recurso', (req, res) => {
+  res.status(200).json(registros);
 });
+
+app.get('/api/recurso/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const registro = registros.find(r => r.id === id);
+
+  if (!registro) {
+    return res.status(404).json({ erro: 'Registro não encontrado' });
+  }
+  
+  res.status(200).json(registro);
+});
+
+app.put('/api/recurso/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = registros.findIndex(r => r.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ erro: 'Registro não encontrado' });
+  }
+
+  registros[index] = { ...registros[index], ...req.body, id };
+  res.status(200).json(registros[index]);
+});
+
+app.delete('/api/recurso/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = registros.findIndex(r => r.id === id);
+  
+  if (index === -1) {
+    return res.status(404).json({ erro: 'Registro não encontrado' });
+  }
+
+  registros.splice(index, 1);
+  res.status(204).send(); 
+});
+
+const server = app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+});
+
+module.exports = { app, server };

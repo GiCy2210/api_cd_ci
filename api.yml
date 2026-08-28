@@ -1,0 +1,84 @@
+openapi: 3.0.0
+info:
+  title: API de Recursos
+  description: Documentacao da API de Recursos.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Servidor Local
+
+paths:
+  /api/recurso:
+    get:
+      summary: Lista todos os registros
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Cria um novo registro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                status:
+                  type: string
+      responses:
+        '201':
+          description: Criado
+
+  /api/recurso/{id}:
+    get:
+      summary: Busca um registro por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Nao encontrado
+    put:
+      summary: Atualiza um registro
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                status:
+                  type: string
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Nao encontrado
+    delete:
+      summary: Remove um registro
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Removido
+        '404':
+          description: Nao encontrado
