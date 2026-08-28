@@ -1,75 +1,24 @@
-const express = require('express');
-const swaggerUi = require('swagger-ui-express');
-const YAML = require('yamljs');
-const path = require('path');
+const request = require('supertest');
+const { app, server } = require('../server');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json());
-
-let registros = [];
-
-// Carrega o api.yml garantindo o caminho correto na pasta raiz
-const caminhoSwagger = path.join(__dirname, 'api.yml');
-const swaggerDocument = YAML.load(caminhoSwagger);
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
-app.post('/api/recurso', (req, res) => {
-  const { titulo, status } = req.body;
-  
-  if (!titulo) {
-    return res.status(400).json({ erro: 'O campo título é obrigatório.' });
-  }
-
-  const novoRegistro = { id: Date.now(), titulo, status };
-  registros.push(novoRegistro);
-  
-  res.status(201).json(novoRegistro);
+afterAll((done) => {
+  server.close(done);
 });
 
-app.get('/api/recurso', (req, res) => {
-  res.status(200).json(registros);
+describe('Testes da API de Recursos', () => {
+  it('GET /api/recurso deve retornar status 200 e uma lista', async () => {
+    const res = await request(app).get('/api/recurso');
+    expect(res.statusCode).toEqual(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  it('POST /api/recurso deve criar um novo registro', async () => {
+    const res = await request(app)
+      .post('/api/recurso')
+      .send({ titulo: 'Teste CI', status: 'ativo' });
+    
+    expect(res.statusCode).toEqual(201);
+    expect(res.body).toHaveProperty('id');
+    expect(res.body.titulo).toBe('Teste CI');
+  });
 });
-
-app.get('/api/recurso/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const registro = registros.find(r => r.id === id);
-
-  if (!registro) {
-    return res.status(404).json({ erro: 'Registro não encontrado' });
-  }
-  
-  res.status(200).json(registro);
-});
-
-app.put('/api/recurso/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = registros.findIndex(r => r.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ erro: 'Registro não encontrado' });
-  }
-
-  registros[index] = { ...registros[index], ...req.body, id };
-  res.status(200).json(registros[index]);
-});
-
-app.delete('/api/recurso/:id', (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = registros.findIndex(r => r.id === id);
-  
-  if (index === -1) {
-    return res.status(404).json({ erro: 'Registro não encontrado' });
-  }
-
-  registros.splice(index, 1);
-  res.status(204).send(); 
-});
-
-const server = app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
-
-module.exports = { app, server };
