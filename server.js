@@ -8,8 +8,11 @@ let registros = [];
 
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
+const path = require('path'); // Adicione esta linha para importar o módulo 'path'
 
-const swaggerDocument = YAML.load('./api.yml');
+// Substitua o './api.yml' por path.join(__dirname, 'api.yml')
+const caminhoSwagger = path.join(__dirname, 'api.yml');
+const swaggerDocument = YAML.load(caminhoSwagger);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
